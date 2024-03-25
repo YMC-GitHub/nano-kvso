@@ -7,12 +7,12 @@ import { spawn } from 'node:child_process'
 import { builtinModules } from 'node:module'
 import { defineConfig } from 'vite'
 // import plainText from 'vite-plugin-plain-text';
-import banner from 'vite-plugin-banner'
+// import banner from 'vite-plugin-banner'
 import eslint from "vite-plugin-eslint";
+import nanoViteMiniDist from "vite-plugin-nano"
 
 import pkg from './package.json'
 // import fg from 'fast-glob';
-
 // prefer-const
 const isDevEnv = process.argv.slice(2).includes('--watch')
 const jsfileOutDir: string = "dist"
@@ -25,8 +25,7 @@ const jsfileSrcDir='lib'
 // console.log(tsentryfiles)
 // const {log}=console
 
-
-
+let bannerText = `/**\n * name: ${pkg.name}\n * version: v${pkg.version}\n * description: ${pkg.description}\n * author: ${pkg.author}\n * homepage: ${pkg.homepage}\n */`
 let  plugins =[
   isDevEnv?eslint({ lintOnStart: true, cache: false }):undefined,
   // allow all *.md files can be import as es module
@@ -35,53 +34,17 @@ let  plugins =[
       name: 'generate-types',
       async closeBundle() {
           if (process.env.NODE_ENV === 'test') return
-
           removeTypes()
           await generateTypes()
           moveTypesToDist()
           removeTypes()
       },
   },
-  banner(
-    `/**\n * name: ${pkg.name}\n * version: v${pkg.version}\n * description: ${pkg.description}\n * author: ${pkg.author}\n * homepage: ${pkg.homepage}\n */`
-  )
+  // banner(bannerText),
+  nanoViteMiniDist({banner:bannerText})
 ]
 // console.log(stdUmdName(pkg.name))
 
-export default defineConfig({
-    build: {
-        // terserOptions: {
-        //     compress: {
-        //         drop_console: true,
-        //         drop_debugger: true,
-        //     },
-        // },
-        // minify: !isDevEnv?'terser':false,
-        minify:false,
-        outDir: jsfileOutDir,
-        emptyOutDir: !isDevEnv,
-        // target: 'node14',
-        lib: {
-            entry: [jsfileSrcDir,'main.ts'].join("/"),
-            name: stdUmdName(pkg.name),
-            formats: ['cjs', 'es','umd'],
-            // fileName: format => format === 'es' ? '[name].mjs' : '[name].js',
-            fileName: format => format === 'es' ? '[name].js' : format === 'umd' ?'[name].umd.cjs':'[name].cjs',
-        },
-        rollupOptions: {
-            external: [
-                'vite',
-                ...builtinModules,
-                ...builtinModules.map(m => `node:${m}`),
-                ...Object.keys('dependencies' in pkg ? pkg.dependencies as object : {}),
-            ],
-            output: {
-                exports: 'named',
-            },
-        },
-    },
-    plugins: plugins.filter(v=>v),
-})
 
 function removeTypes() {
     console.log(`[types] declaration remove`)
@@ -122,3 +85,39 @@ function moveTypesToDist() {
 function stdUmdName(name:string){
   return name.replace(/'@.*\/'/ig,'').replace(/-/ig,'')
 }
+
+
+export default defineConfig({
+  build: {
+      // terserOptions: {
+      //     compress: {
+      //         drop_console: true,
+      //         drop_debugger: true,
+      //     },
+      // },
+      // minify: !isDevEnv?'terser':false,
+      minify:false,
+      outDir: jsfileOutDir,
+      emptyOutDir: !isDevEnv,
+      // target: 'node14',
+      lib: {
+          entry: [jsfileSrcDir,'main.ts'].join("/"),
+          name: stdUmdName(pkg.name),
+          formats: ['cjs', 'es','umd'],
+          // fileName: format => format === 'es' ? '[name].mjs' : '[name].js',
+          fileName: format => format === 'es' ? '[name].js' : format === 'umd' ?'[name].umd.cjs':'[name].cjs',
+      },
+      rollupOptions: {
+          external: [
+              'vite',
+              ...builtinModules,
+              ...builtinModules.map(m => `node:${m}`),
+              ...Object.keys('dependencies' in pkg ? pkg.dependencies as object : {}),
+          ],
+          output: {
+              exports: 'named',
+          },
+      },
+  },
+  plugins: plugins.filter(v=>v),
+})
