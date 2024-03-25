@@ -1,6 +1,6 @@
 {
   "name": "nano-kvso",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "a library package to convert object like nano.flag to key-val string of oneline",
   "keywords": [
     "nano-kvso",
